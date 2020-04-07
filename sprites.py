@@ -1,7 +1,8 @@
-
+#
 # Sprite classes for platform game
 # © 2019 KidsCanCode LLC / All rights reserved.
 # mr cozort planted a landmine by importing Sprite directly...
+import time
 import pygame as pg
 from pygame.sprite import Sprite
 from settings import *
@@ -20,14 +21,18 @@ class Player(Sprite):
         self.vel = vec(0, 0)
         self.acc = vec(0, 0)
         self.hitpoints = 100
+
     def myMethod(self):
         pass
+
+
     def jump(self):
         self.rect.x += 1
-        hits = pg.sprite.spritecollide(self, self.game.platforms, False)
+        hits = pg.sprite.spritecollide(self, self.game.platforms, True)
         self.rect.x -= 1
         if hits: 
-            self.vel.y = -20
+            self.vel.y = -15
+        
     def update(self):
         self.acc = vec(0, 0.5)
         keys = pg.key.get_pressed()
@@ -35,13 +40,14 @@ class Player(Sprite):
             self.acc.x = -PLAYER_ACC
         if keys[pg.K_d]:
             self.acc.x = PLAYER_ACC
-        if keys[pg.K_w]:
-            self.acc.y = -PLAYER_ACC
+       # if keys[pg.K_w]:
+           # self.acc.y = -PLAYER_ACC
         if keys[pg.K_s]:
             self.acc.y = PLAYER_ACC
         # ALERT - Mr. Cozort did this WAY differently than Mr. Bradfield...
         if keys[pg.K_SPACE]:
             self.jump()
+
 
         # apply friction
         self.acc.x += self.vel.x * PLAYER_FRICTION
@@ -56,8 +62,14 @@ class Player(Sprite):
             self.pos.x = WIDTH
         if self.pos.y < 0:
             self.pos.y = HEIGHT
+            self.canjump = False
         if self.pos.y > HEIGHT:
             self.pos.y = 0
+        if self.pos.y <= HEIGHT :
+            self.canjump = True
+    
+    
+    
 
         self.rect.midbottom = self.pos
 class Platform(Sprite):
@@ -68,3 +80,12 @@ class Platform(Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+class groundPlat(Sprite):
+      def __init__(self, x, y, w, h):
+        Sprite.__init__(self)
+        self.image = pg.Surface((w, h))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+    
