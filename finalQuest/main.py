@@ -1,20 +1,23 @@
-#This file was created by Eduardo Noyola
-#The code was sourced by Mr. Cozort's 4th period walkthrough class
+# This file was created by: Eduardo Noyola 
 
+# Sources Cited:
+    # Mr. Cozort's 4th period code walkthrough(utilized the code demonstrated as a template)
+    # Utilizes Mr. Cozort's 2nd period code walkthrough(Took inspiration and ideas, and simple add-ons for my code)d
 
-#imports modules 
+# Imports modules
 import pygame as pg
-from pygame.sprite import Sprite
-import random
-from os import path
+from pygame.sprite import Sprite 
+import random 
+from os import path 
+import time 
 
-#Global variables 
+# Global settings and variables
 WIDTH = 480
 HEIGHT = 600
 FPS = 60
-score = 0
+Round = 0 
 
-# define colors
+# Defines all the colors 
 WHITE = (255, 255, 255)
 DARKBLUE = (39, 54, 77)
 BLACK = (0, 0, 0)
@@ -22,24 +25,37 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
+
+# Creates a path between folders 
 game_dir = path.join(path.dirname(__file__))
 
-# loads the images for the classes 
+# Loads the background image
 background_image = pg.image.load(game_dir + "/img/bg.png")
 background_rect = background_image.get_rect()
 background_rect2 = background_image.get_rect()
-player_image = pg.image.load(game_dir + "/img/player.png")
-mob_image = pg.image.load(game_dir + "/img/mob.png")
 
-# initialize pygame
+# Loads the player's image 
+player_image = pg.image.load(game_dir + "/img/player.png")
+
+# Loads the enemies' images 
+mob_image = pg.image.load(game_dir + "/img/mob.png")
+Boss_image = pg.image.load(game_dir + "/img/boss.png")
+
+# Initialize pygame
 pg.init()
 pg.mixer.init()
+
+# Creates the screen 
 screen = pg.display.set_mode((WIDTH, HEIGHT))
+# The title of the game
 pg.display.set_caption("Space Crusaders")
+# Creates a timer 
 clock = pg.time.Clock()
 
-#Creates an Arial font, so text can be included within the game, such as a text for how score 
+# Provides the font_name with the 'arial' font
 font_name = pg.font.match_font('arial')
+
+# Function allows text to be drawn within the screen 
 def draw_text(surf, text, size, x, y):
     font = pg.font.Font(font_name, size)
     text_surface = font.render(text, True, WHITE)
@@ -47,165 +63,302 @@ def draw_text(surf, text, size, x, y):
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
 
-#Player Class 
+
+
+# Player Class 
 class Player(Sprite):
-    #intiates the class
+    # Intiates the class
     def __init__(self):
-        #intiates Sprite
+        # Intiates Sprite 
         Sprite.__init__(self)
-        #creates the image of the player
-        self.image = pg.transform.scale(player_image, (50, 40))
-        #removes all color black from the game
-        self.image.set_colorkey(BLACK)
-        #draws the player 
+        # Gives a scale for the player image
+        self.image = pg.transform.scale(player_image, (60, 40))
+        # Deletes all black within the image 
+        self.image.set_colorkey(WHITE)
+        # Places the image on the rectangle that makes up the player
         self.rect = self.image.get_rect()
-        #Places the player spawn point 
+        # Where the player spawns within the game 
         self.rect.centerx = WIDTH / 2
         self.rect.bottom = HEIGHT - 10
-        #different variables for the player 
+        # Speed of the player, hp of the player, and the total ammo of the player. In addition to the life. 
         self.speedx = 0
         self.speedy = 10
-        self.hitpoints = 100
+        self.hp = 100
         self.ammo = 100
-    #A module that updates multiple things within the game 
+        self.live = True 
+        self.score = 0
+    # The Method "update" updates various things within the Player Class
     def update(self):
-        #Assigns the value for the x speed 
+        # If no key is being pressed the player's speed will be zero and always returns to zero
         self.speedx = 0
-        # self.speedy = 0
-        #imports a library within pygame to allows for keys to be made 
+        # Allows for keys to be assigned 
         keystate = pg.key.get_pressed()
-        # if keystate[pg.K_w]:
-        #     self.pew()
-        #the two different keys that will be used with the speed they add when the player moves
+        # Creates the keys that allow the player to move left and right 
         if keystate[pg.K_a]:
             self.speedx = -8
         if keystate[pg.K_d]:
             self.speedx = 8
-        # if keystate[pg.K_w]:
-        #     self.speedy = -8
-        # if keystate[pg.K_s]:
-        #     self.speedy = 8
-        #applies the speed to the player 
+        # Applies the speed to the player when the key is pressed 
         self.rect.x += self.speedx
-        # self.rect.y += self.speedy
-    #this class creates the amount of lazers the player can shoot  
+        # If the player goes beyond the width, then will be returned or not allowed to go father 
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH 
+        # This all applies for the left side 
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.hp <= 0:
+            self.kill()
+            self.live = False
+    # A method that creates lazer and the use of ammo within the game
     def pew(self):
-        #gives ammo the player 
+        # If the ammo is greater than 0, the player can shoot lazers, but if its 0 then the shooting ability is disabled
         if self.ammo > 0:
-            #if the ammo does not equal zero it keeps creating lazers 
-            lazer = Lazer(self.rect.centerx, self.rect.top)
-            all_sprites.add(lazer)
-            lazers.add(lazer)
+            lazer1 = Lazer(self.rect.centerx, self.rect.top)
+            lazer2 = Lazer(self.rect.right, self.rect.centery)
+            lazer3 = Lazer(self.rect.left, self.rect.centery)
+            all_sprites.add(lazer1)
+            all_sprites.add(lazer2)
+            all_sprites.add(lazer3)
+            lazers.add(lazer1)
+            lazers.add(lazer2)
+            lazers.add(lazer3)
             self.ammo-=1
-            # print(self.ammo)
+            # Makes sure that the ammo does not go over 100 
+            if self.ammo > 100:
+                self.ammo = 100
+            # print(self.ammo
 
-#Class the creates mobs
+
+        
+# The class that creates enemies 
 class Mob(Sprite):
-    #intializes the class
+    #intiates class
     def __init__(self):
-        #intializes Sprite 
+        #intiates Sprites 
         Sprite.__init__(self)
-        #creates the dimensions for the mobs 
-        self.image = pg.transform.scale(mob_image, (20, 20))
-        #deletes all the color black 
+        # Dimensions of the mob 
+        self.image = pg.transform.scale(mob_image, (40, 40))
+        # Eliminates these colors 
         self.image.set_colorkey(BLACK)
-        #draws the mob 
+        self.image.set_colorkey(WHITE)
         self.rect = self.image.get_rect()
-        #gives the mobs random speeds and spawn points 
         self.rect.x = random.randrange(0, WIDTH-self.rect.width)
         self.rect.y = random.randrange(0, 240)
-        self.speedx = random.randrange(1,10)
+        self.speedx = random.randrange(1,5)
         self.speedy = random.randrange(1,10)
-    #module that updates ceirtain functions within the game 
+        self.hp = 100
     def update(self):
-        #gives the mobs the speed of x that is being given to them 
+        # Updates movement and bullets 
         self.rect.x += self.speedx
-        #tracts the mobs and makes sure that they don't go farther than the width if not they will be redirected 
         if self.rect.x > WIDTH or self.rect.x < 0:
             self.speedx*=-1
             self.rect.y += 25
         if self.rect.y > HEIGHT:
             self.rect.y = -25
             self.rect.x = random.randrange(0, WIDTH-self.rect.width)
-
-#This class creates the lazers 
+        self.shoot = random.randrange(1,1000)
+        if self.shoot% 200 == 0:
+            self.pew()
+        # Kills the mobs and gives ammo to player plus increase the score 
+        if self.hp <= 0: 
+            self.kill()
+            player.ammo += 5
+            player.score += 2 
+    # Creates lazers
+    def pew(self):
+        antilazer = Antilazer(self.rect.centerx, self.rect.bottom)
+        all_sprites.add(antilazer)
+        antilazers.add(antilazer)
+        
+# Lazer Class 
 class Lazer(Sprite):
-    #intializes the class 
     def __init__(self, x, y):
-        #intializes Sprite 
         Sprite.__init__(self)
-        #gives the lazer dimensions 
+        # Creates the lazer and applies a speed to it 
         self.image = pg.Surface((5,25))
-        #fills in the lazers shape into the color blue 
         self.image.fill(BLUE)
-        #gives the lazer a shape 
         self.rect = self.image.get_rect()
-        #gives the lazer a spawn point from where it will go(from the player)
         self.rect.bottom = y
         self.rect.centerx = x
         self.speedy = -10
     def update(self):
+        # Destroys the lazer so that the game wont lag 
+        self.rect.y += self.speedy
+        if self.rect.bottom <= 0:
+            self.kill()
+
+# Enemy Lazer Class
+class Antilazer(Sprite):
+    def __init__(self, x, y):
+        Sprite.__init__(self)
+        # Gives the lazer a size and speed
+        self.image = pg.Surface((5,25))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.bottom = y
+        self.rect.centerx = x
+        self.speedy = 5
+    
+    def update(self):
+        # Kills the lazers, so lag will not occur 
         self.rect.y += self.speedy
         if self.rect.bottom < 0:
             self.kill()
 
-# Groups all the classes into an all_sprites group, so its more acessable 
+# Boss class 
+class Boss(Sprite):
+    def __init__(self):
+        Sprite.__init__(self)
+        # Gives it dimensions and a random speed and spawn point 
+        self.image = pg.transform.scale(Boss_image, (80,80))
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randrange(0, WIDTH-self.rect.width)
+        self.rect.y = random.randrange(0, 240)
+        self.speedx = random.randrange(1,8)
+        self.speedy = random.randrange(1,8)
+        # Gives it hp 
+        self.hp = 500
+    def update(self):
+        # Updates various compotents 
+        self.rect.x += self.speedx
+        if self.rect.x > WIDTH or self.rect.x < 0:
+            self.speedx*=-1
+            self.rect.y += 25
+        if self.rect.y > HEIGHT:
+            self.rect.y = -25
+            self.rect.x = random.randrange(0, WIDTH-self.rect.width)
+        self.shoot = random.randrange(1,1000)
+        if self.shoot % 150 == 0:
+            self.pew()
+        if self.hp <= 0: 
+            self.kill()
+            player.score += 10 
+            player.ammo += 10
+    # Shoots two lazers rather than one 
+    def pew(self):
+        antilazer1 = Antilazer(self.rect.left, self.rect.centery)
+        antilazer2 = Antilazer(self.rect.right, self.rect.centery)
+        all_sprites.add(antilazer1)
+        all_sprites.add(antilazer2)
+        antilazers.add(antilazer1)
+        antilazers.add(antilazer2)
+
+       
+
+
+
+
+# where all the new things get created and grouped...
 all_sprites = pg.sprite.Group()
+bosses = pg.sprite.Group()
 mobs = pg.sprite.Group()
 lazers = pg.sprite.Group()
+antilazers = pg.sprite.Group()
+player = pg.sprite.Group()
 player = Player()
+
+# spawns more mobs
 all_sprites.add(player)
-#Generates 8 enemies 
 for i in range(0,8):
     mob = Mob()
     all_sprites.add(mob)
     mobs.add(mob)
 
 
+
+
 # the game loop
+
 running = True
-while running: 
+while running:
+    # if game_over:
+    #     # player.show_go_screen()
+    #     game_over = False
+        # where all the new things get created and grouped...
+        
+# spawns more mobs
+    all_sprites.add(player)
+# for i in range(0,8):
+#     mob = Mob()
+#     all_sprites.add(mob)
+#     mobs.add(mob)
     # keep loop running based on clock
     clock.tick(FPS)
+
     for event in pg.event.get():
-        # If the window x button is pressed the game ends or shuts off 
+        # window x button
         if event.type == pg.QUIT:
             running = False
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_SPACE:
                 player.pew()
+        
 
-    # colliders that check if ceirtain groups have collided 
+
+    
+
+    # update
     all_sprites.update()
-    hits = pg.sprite.groupcollide(mobs, lazers, True, True)
+    
+    for mob in mobs:
+        shot = pg.sprite.spritecollide(mob, lazers, False)
+        if shot: 
+            mob.hp-= 5
+            # print(mob.hp)
+    for boss in bosses:
+        shot1 = pg.sprite.spritecollide(boss,lazers,False)
+        if shot1:
+            boss.hp-=50
+            print(boss.hp)
+    damaged = pg.sprite.spritecollide(player, antilazers, False)
+    if damaged:
+        player.hp -= 10 
+    if player.live == False: 
+        running = False
 
+            
+        
+
+    hits = pg.sprite.spritecollide(player, antilazers, True)
+    hits = pg.sprite.spritecollide(player, bosses, False)
     hits = pg.sprite.spritecollide(player, mobs, False)
+    
+
     if hits:
         running = False
     
-    #creates more mobs if they all die
     if len(mobs) == 0:
         for i in range(0,8):
             mob = Mob()
             all_sprites.add(mob)
             mobs.add(mob)
+        
+    if len(bosses) == 0:
+        if player.score % 20 == 0:
+            boss = Boss()
+            all_sprites.add(boss)
+            bosses.add(boss)
 
-    #creates a moving background making it look like the players are moving quickly 
-    background_rect2.y = background_rect.y-600
-    background_rect.y += player.speedy
-    background_rect2.y += player.speedy
+
+    # creates the moving background 
+    background_rect2.y = background_rect.y - 600
+    background_rect.y+= player.speedy
+    background_rect2.y+= player.speedy 
 
     if background_rect2.y >- 0:
-        background_rect.y = background_rect.y-600
+        background_rect.y = background_rect.y - 600
     
-    # Draws the text and the backgrounds 
+    # Draw
     screen.fill(DARKBLUE)
     screen.blit(background_image, background_rect)
     screen.blit(background_image, background_rect2)
-    draw_text(screen, str(score), 24, WIDTH / 2, 10)
+    draw_text(screen, str(player.score), 24, WIDTH / 2, 10)
+    draw_text(screen, str(Round), 24, WIDTH / 3, 10)
     draw_text(screen, str(player.ammo), 24, WIDTH / 4, 10)
+    draw_text(screen, str(player.hp), 16, player.rect.centerx, player.rect.bottom)
+
     all_sprites.draw(screen)
     pg.display.flip()
 
-#shuts the game down
 pg.quit()
