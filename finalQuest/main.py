@@ -13,6 +13,12 @@
     # KidsCanCode Shump Part 9: Shields
     # https://www.youtube.com/watch?v=vvgWfNLgK9c&t=399s
 
+    # KidsCanCode Shump Part 12: Powerups 
+    # https://www.youtube.com/watch?v=z6h6l1yJ5-w
+
+    # KidsCanCode Shump Part 13: Powerups(Part 2)
+    # https://www.youtube.com/watch?v=y2w-116htIQ&t=2s
+
 
 # Imports modules
 import pygame as pg
@@ -26,6 +32,8 @@ WIDTH = 480
 HEIGHT = 600
 FPS = 60
 Round = 0 
+POWERUP_TIME = 5000
+POWERUP_TIME2 =  7000
 
 # Defines all the colors 
 WHITE = (255, 255, 255)
@@ -53,8 +61,12 @@ player_mini.set_colorkey(BLACK)
 mob_image = pg.image.load(game_dir + "/img/mob.png")
 Boss_image = pg.image.load(game_dir + "/img/boss.png")
 
+
+health_image= pg.image.load(game_dir + "/img/health.png")
+ammo_image = pg.image.load(game_dir + "/img/ammo.png")
 turret_image = pg.image.load(game_dir + "/img/turret.png")
-# powerup_images['Health'] = pg.image.load(game_dir + "/img/health.png")
+
+
 # Initialize pygame
 pg.init()
 pg.mixer.init()
@@ -146,9 +158,17 @@ class Player(Sprite):
         self.lives = 3
         self.hidden = False
         self.hide_timer = pg.time.get_ticks()
+        self.power = 1
+        self.power_timer = pg.time.get_ticks()
 
     # The Method "update" updates various things within the Player Class
     def update(self):
+        if self.power > 2 and pg.time.get_ticks() - self.power_time > POWERUP_TIME:
+            self.power -= 1
+            self.power_time = pg.time.get_ticks()
+        if self.power > 1 and pg.time.get_ticks()- self.power_time > POWERUP_TIME2:
+            self.power -= 1 
+            self.power_time = pg.time.get_ticks() 
         if self.hidden and pg.time.get_ticks() - self.hide_timer > 1000:
             self.hidden = False
             self.rect.centerx =WIDTH/ 2
@@ -174,19 +194,33 @@ class Player(Sprite):
             self.hide()
             self.lives -= 1
             self.hp = 100
+            self.power = 1 
     # A method that creates lazer and the use of ammo within the game
     def pew(self):
         # If the ammo is greater than 0, the player can shoot lazers, but if its 0 then the shooting ability is disabled
         if self.ammo > 0:
-            lazer1 = Lazer(self.rect.centerx, self.rect.top)
-            lazer2 = Lazer(self.rect.right, self.rect.centery)
-            lazer3 = Lazer(self.rect.left, self.rect.centery)
-            all_sprites.add(lazer1)
-            all_sprites.add(lazer2)
-            all_sprites.add(lazer3)
-            lazers.add(lazer1)
-            lazers.add(lazer2)
-            lazers.add(lazer3)
+            if self.power == 1:
+                lazer1 = Lazer(self.rect.centerx, self.rect.top)
+                all_sprites.add(lazer1)
+                lazers.add(lazer1)
+            if self.power == 2:
+                lazer2 = Lazer(self.rect.right, self.rect.centery)
+                lazer3 = Lazer(self.rect.left, self.rect.centery)
+                all_sprites.add(lazer2)
+                all_sprites.add(lazer3)
+                lazers.add(lazer2)
+                lazers.add(lazer3)
+            if self.power == 3:
+                lazer1 = Lazer(self.rect.centerx, self.rect.top)
+                all_sprites.add(lazer1)
+                lazers.add(lazer1)
+                lazer2 = Lazer(self.rect.right, self.rect.centery)
+                lazer3 = Lazer(self.rect.left, self.rect.centery)
+                all_sprites.add(lazer2)
+                all_sprites.add(lazer3)
+                lazers.add(lazer2)
+                lazers.add(lazer3)
+
             self.ammo-=1
             # Makes sure that the ammo does not go over 100 
             if self.ammo > 100:
@@ -195,10 +229,14 @@ class Player(Sprite):
     def hide(self):
         self.hidden = True 
         self.hide_timer= pg.time.get_ticks()
-        self.rect.center= (WIDTH / 2, HEIGHT + 200)
+        self.rect.center= (WIDTH / 2, HEIGHT + 200)   
+    def powerup(self):
+        self.power += 1 
+        self.power_time = pg.time.get_ticks()
+        if self.power > 3:
+            self.power = 3
+            
 
-
-        
 # The class that creates enemies 
 class Mob(Sprite):
     #intiates class
@@ -215,7 +253,7 @@ class Mob(Sprite):
         self.rect.y = random.randrange(0, 240)
         self.speedx = random.randrange(1,5)
         self.speedy = random.randrange(1,10)
-        self.hp = 100
+        self.hp = 50
     def update(self):
         # Updates movement and bullets 
         self.rect.x += self.speedx
@@ -231,8 +269,21 @@ class Mob(Sprite):
         # Kills the mobs and gives ammo to player plus increase the score 
         if self.hp <= 0: 
             self.kill()
-            player.ammo += 5
             player.score += 2 
+            if random.random() > 0.95:
+                hpPowerup = hpPow(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(hpPowerup)
+                hpPowerups.add(hpPowerup)
+            if random.random() > 0.85:
+                ammoPowerup = ammoPow(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(ammoPowerup)
+                ammoPowerups.add(ammoPowerup)
+            if random.random() >0.98:
+                turretPowerup = turretPow(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(turretPowerup)
+                turretPowerups.add(turretPowerup)
+
+
 
 
                 
@@ -282,8 +333,81 @@ class Antilazer(Sprite):
     def update(self):
         # Kills the lazers, so lag will not occur 
         self.rect.y += self.speedy
+        if self.rect.bottom < 0:
+            self.kill()
+
+class hpPow(Sprite):
+    def __init__(self, x, y):
+        Sprite.__init__(self)
+        self.image = pg.transform.scale(health_image, (20, 20))
+        # Eliminates these colors 
+        self.image.set_colorkey(BLACK)
+        #Gives the lazer a size and speed
+        self.rect = self.image.get_rect()
+        self.rect.bottom = y
+        self.rect.centerx = x
+        self.speedy = 2.5
+    
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill() 
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
         if self.rect.top > HEIGHT:
             self.kill()
+
+class ammoPow(Sprite):
+    def __init__(self, x, y):
+        Sprite.__init__(self)
+        self.image = pg.transform.scale(ammo_image, (20, 20))
+        # Eliminates these colors 
+        self.image.set_colorkey(BLACK)
+        #Gives the lazer a size and speed
+        self.rect = self.image.get_rect()
+        self.rect.bottom = y
+        self.rect.centerx = x
+        self.speedy = 2.5
+    
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill() 
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill()
+
+class turretPow(Sprite):
+    def __init__(self, x, y):
+        Sprite.__init__(self)
+        self.image = pg.transform.scale(turret_image, (20, 20))
+        # Eliminates these colors 
+        self.image.set_colorkey(BLACK)
+        #Gives the lazer a size and speed
+        self.rect = self.image.get_rect()
+        self.rect.bottom = y
+        self.rect.centerx = x
+        self.speedy = 2.5
+    
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill() 
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill()
+
+
+
+
     
 
 
@@ -316,8 +440,19 @@ class Boss(Sprite):
             self.pew()
         if self.hp <= 0: 
             self.kill()
-            player.score += 10 
-            player.ammo += 10
+            player.score += 10
+            if random.random() > 0.75:
+                hpPowerup = hpPow(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(hpPowerup)
+                hpPowerups.add(hpPowerup)
+            if random.random() > 0.70:
+                ammoPowerup = ammoPow(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(ammoPowerup)
+                ammoPowerups.add(ammoPowerup)
+            if random.random() >0.78:
+                turretPowerup = turretPow(self.rect.centerx, self.rect.bottom)
+                all_sprites.add(turretPowerup)
+                turretPowerups.add(turretPowerup)
     # Shoots two lazers rather than one 
     def pew(self):
         antilazer1 = Antilazer(self.rect.left, self.rect.centery)
@@ -344,6 +479,9 @@ while running:
         show_go_screen()
         game_over = False
         all_sprites = pg.sprite.Group()
+        hpPowerups = pg.sprite.Group()
+        ammoPowerups = pg.sprite.Group()
+        turretPowerups = pg.sprite.Group()
         bosses = pg.sprite.Group()
         mobs = pg.sprite.Group()
         lazers = pg.sprite.Group()
@@ -379,20 +517,30 @@ while running:
     all_sprites.update()
     
     for mob in mobs:
-        shot = pg.sprite.spritecollide(mob, lazers, False)
+        shot = pg.sprite.spritecollide(mob, lazers, True)
         if shot: 
-            mob.hp-= 5
+            mob.hp-= 25
             # print(mob.hp)
     for boss in bosses:
-        shot1 = pg.sprite.spritecollide(boss,lazers,False)
+        shot1 = pg.sprite.spritecollide(boss,lazers,True)
         if shot1:
-            boss.hp-=25
+            boss.hp-= 50 
             # print(boss.hp)
-    damaged = pg.sprite.spritecollide(player, antilazers, False)
+    damaged = pg.sprite.spritecollide(player, antilazers, True)
     if damaged:
         player.hp -= 10 
     if player.lives == 0: 
         game_over = True
+
+    hpBack = pg.sprite.spritecollide(player,hpPowerups, True)
+    if hpBack:
+        player.hp = 100
+    ammoBack= pg.sprite.spritecollide(player,ammoPowerups, True)
+    if ammoBack:
+        player.ammo += 50
+    turretBack = pg.sprite.spritecollide(player,turretPowerups, True)
+    if turretBack:
+        player.powerup()
 
             
   
