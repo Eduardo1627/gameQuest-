@@ -3,6 +3,16 @@
 # Sources Cited:
     # Mr. Cozort's 4th period code walkthrough(utilized the code demonstrated as a template)
     # Utilizes Mr. Cozort's 2nd period code walkthrough(Took inspiration and ideas, and simple add-ons for my code)d
+   
+    # KidsCanCode Shmup Part 14: Game Over Screen 
+    # https://www.youtube.com/watch?v=Z2K2Yttvr5g&t=46s
+
+    # KidsCanCode Shump Part 11: Player Lives
+    # https://www.youtube.com/watch?v=G5-4nV6LxgU&t=248s
+
+    # KidsCanCode Shump Part 9: Shields
+    # https://www.youtube.com/watch?v=vvgWfNLgK9c&t=399s
+
 
 # Imports modules
 import pygame as pg
@@ -36,11 +46,15 @@ background_rect2 = background_image.get_rect()
 
 # Loads the player's image 
 player_image = pg.image.load(game_dir + "/img/player.png")
+player_mini = pg.transform.scale(player_image,(25,19))
+player_mini.set_colorkey(BLACK)
 
 # Loads the enemies' images 
 mob_image = pg.image.load(game_dir + "/img/mob.png")
 Boss_image = pg.image.load(game_dir + "/img/boss.png")
 
+turret_image = pg.image.load(game_dir + "/img/turret.png")
+# powerup_images['Health'] = pg.image.load(game_dir + "/img/health.png")
 # Initialize pygame
 pg.init()
 pg.mixer.init()
@@ -62,6 +76,49 @@ def draw_text(surf, text, size, x, y):
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
+def show_go_screen():
+    screen.blit(background_image,background_rect)
+    draw_text(screen,"Space Crusders!", 64, WIDTH / 2, HEIGHT / 4)
+    draw_text(screen, "Arrow Keys move, Space to fire", 22, WIDTH/ 2, HEIGHT / 2)
+    draw_text(screen, "Press a key to begin", 18, WIDTH / 2, HEIGHT * 3/4 )
+    pg.display.flip()
+    waiting = True
+    while waiting:
+        clock.tick(FPS)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+            if event.type == pg.KEYUP:
+                waiting = False
+def draw_health_bar(screen,x,y, pct):
+    if pct <0:
+        pct = 0
+    BAR_LENGTH = 100
+    BAR_HEIGHT = 10
+    fill = (pct / 100 * BAR_LENGTH)
+    outline_rect = pg.Rect(x,y, BAR_LENGTH, BAR_HEIGHT)
+    fill_rect = pg.Rect(x,y, fill, BAR_HEIGHT)
+    pg.draw.rect(screen, GREEN, fill_rect)
+    pg.draw.rect(screen,WHITE, outline_rect, 2)
+def draw_ammo_bar(screen,x,y, pct):
+    if pct <0:
+        pct = 0
+    if pct > 100 :
+        pct = 100
+    BAR_LENGTH = 100
+    BAR_HEIGHT = 10
+    fill = (pct / 100 * BAR_LENGTH)
+    outline_rect = pg.Rect(x,y, BAR_LENGTH, BAR_HEIGHT)
+    fill_rect = pg.Rect(x,y, fill, BAR_HEIGHT)
+    pg.draw.rect(screen, YELLOW, fill_rect)
+    pg.draw.rect(screen,WHITE, outline_rect, 2)
+def draw_lives(screen,x,y, lives, img):
+    for i in range(lives):
+        img_rect = img.get_rect()
+        img_rect.x = x + 30 * i 
+        img_rect.y = y
+        screen.blit(img,img_rect)
+
 
 
 
@@ -85,10 +142,17 @@ class Player(Sprite):
         self.speedy = 10
         self.hp = 100
         self.ammo = 100
-        self.live = True 
         self.score = 0
+        self.lives = 3
+        self.hidden = False
+        self.hide_timer = pg.time.get_ticks()
+
     # The Method "update" updates various things within the Player Class
     def update(self):
+        if self.hidden and pg.time.get_ticks() - self.hide_timer > 1000:
+            self.hidden = False
+            self.rect.centerx =WIDTH/ 2
+            self.rect.bottom = HEIGHT-10
         # If no key is being pressed the player's speed will be zero and always returns to zero
         self.speedx = 0
         # Allows for keys to be assigned 
@@ -107,8 +171,9 @@ class Player(Sprite):
         if self.rect.left < 0:
             self.rect.left = 0
         if self.hp <= 0:
-            self.kill()
-            self.live = False
+            self.hide()
+            self.lives -= 1
+            self.hp = 100
     # A method that creates lazer and the use of ammo within the game
     def pew(self):
         # If the ammo is greater than 0, the player can shoot lazers, but if its 0 then the shooting ability is disabled
@@ -127,6 +192,10 @@ class Player(Sprite):
             if self.ammo > 100:
                 self.ammo = 100
             # print(self.ammo
+    def hide(self):
+        self.hidden = True 
+        self.hide_timer= pg.time.get_ticks()
+        self.rect.center= (WIDTH / 2, HEIGHT + 200)
 
 
         
@@ -164,6 +233,10 @@ class Mob(Sprite):
             self.kill()
             player.ammo += 5
             player.score += 2 
+
+
+                
+              
     # Creates lazers
     def pew(self):
         antilazer = Antilazer(self.rect.centerx, self.rect.bottom)
@@ -205,6 +278,16 @@ class Antilazer(Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
+    
+    def update(self):
+        # Kills the lazers, so lag will not occur 
+        self.rect.y += self.speedy
+        if self.rect.top > HEIGHT:
+            self.kill()
+    
+
+
+
 # Boss class 
 class Boss(Sprite):
     def __init__(self):
@@ -220,7 +303,7 @@ class Boss(Sprite):
         # Gives it hp 
         self.hp = 500
     def update(self):
-        # Updates various compotents 
+       # Updates various compotents 
         self.rect.x += self.speedx
         if self.rect.x > WIDTH or self.rect.x < 0:
             self.speedx*=-1
@@ -249,41 +332,35 @@ class Boss(Sprite):
 
 
 
-# where all the new things get created and grouped...
-all_sprites = pg.sprite.Group()
-bosses = pg.sprite.Group()
-mobs = pg.sprite.Group()
-lazers = pg.sprite.Group()
-antilazers = pg.sprite.Group()
-player = pg.sprite.Group()
-player = Player()
-
-# spawns more mobs
-all_sprites.add(player)
-for i in range(0,8):
-    mob = Mob()
-    all_sprites.add(mob)
-    mobs.add(mob)
 
 
 
 
 # the game loop
-
+game_over = True 
 running = True
 while running:
-    # if game_over:
-    #     # player.show_go_screen()
-    #     game_over = False
-        # where all the new things get created and grouped...
-        
+    if game_over:
+        show_go_screen()
+        game_over = False
+        all_sprites = pg.sprite.Group()
+        bosses = pg.sprite.Group()
+        mobs = pg.sprite.Group()
+        lazers = pg.sprite.Group()
+        antilazers = pg.sprite.Group()
+        player = pg.sprite.Group()
+        player = Player()
+        all_sprites.add(player)
+        for i in range(0,8):
+            mob = Mob()
+            all_sprites.add(mob)
+            mobs.add(mob)
+
 # spawns more mobs
-    all_sprites.add(player)
-# for i in range(0,8):
-#     mob = Mob()
-#     all_sprites.add(mob)
-#     mobs.add(mob)
-    # keep loop running based on clock
+
+
+ # where all the new things get created and grouped...
+        
     clock.tick(FPS)
 
     for event in pg.event.get():
@@ -309,21 +386,20 @@ while running:
     for boss in bosses:
         shot1 = pg.sprite.spritecollide(boss,lazers,False)
         if shot1:
-            boss.hp-=50
-            print(boss.hp)
+            boss.hp-=25
+            # print(boss.hp)
     damaged = pg.sprite.spritecollide(player, antilazers, False)
     if damaged:
         player.hp -= 10 
-    if player.live == False: 
-        running = False
+    if player.lives == 0: 
+        game_over = True
 
             
-        
+  
 
     hits = pg.sprite.spritecollide(player, antilazers, True)
-    hits = pg.sprite.spritecollide(player, bosses, False)
-    hits = pg.sprite.spritecollide(player, mobs, False)
-    
+    hits = pg.sprite.spritecollide(player, bosses, True)
+    hits = pg.sprite.spritecollide(player, mobs, True)
 
     if hits:
         running = False
@@ -354,10 +430,10 @@ while running:
     screen.blit(background_image, background_rect)
     screen.blit(background_image, background_rect2)
     draw_text(screen, str(player.score), 24, WIDTH / 2, 10)
-    draw_text(screen, str(Round), 24, WIDTH / 3, 10)
-    draw_text(screen, str(player.ammo), 24, WIDTH / 4, 10)
-    draw_text(screen, str(player.hp), 16, player.rect.centerx, player.rect.bottom)
-
+    # draw_text(screen, str(Round), 24, WIDTH / 3, 10)
+    draw_health_bar(screen,5,5,player.hp)
+    draw_ammo_bar(screen,5,20,player.ammo)
+    draw_lives(screen, WIDTH-100, 5, player.lives, player_mini)
     all_sprites.draw(screen)
     pg.display.flip()
 
